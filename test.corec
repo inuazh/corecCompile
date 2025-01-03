@@ -1,0 +1,7 @@
+prog example {
+    def Main {
+        Loc: alpha, beta;
+        Dom: i in [0..10];
+        Rec: alpha = beta + i;
+    }
+}
