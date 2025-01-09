@@ -1,0 +1,26 @@
+prog fibonacci {
+  def Fib { [in: N; inout: (f,N)]
+    Loc: N1,N2
+    Rec: N==0?f[N]=0:N==1?f[N]=1:{
+      N=N-1;
+      N1=OutFact(Fib());
+      N=N-1;
+      N2=OutFact(Fib());
+      f[N+2]=N1+N2
+      }
+  }
+  def OutFact { [in: (f,N), N; out: F]
+    Loc: F
+    Rec: F=f[N]
+  }
+
+  def Main {
+    Loc: N
+    Rec: {
+      printstr("Entrez une valeur entière : ");
+      read(N);
+      printstr("La suite de Fibonacci est : ");
+      print(Fib())
+    }
+  }
+}

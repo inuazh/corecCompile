@@ -39,7 +39,7 @@
 # define YY_YY_COREC_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
-# define YYDEBUG 0
+# define YYDEBUG 1
 #endif
 #if YYDEBUG
 extern int yydebug;
@@ -54,34 +54,46 @@ extern int yydebug;
     YYEOF = 0,                     /* "end of file"  */
     YYerror = 256,                 /* error  */
     YYUNDEF = 257,                 /* "invalid token"  */
-    NUMBER = 258,                  /* NUMBER  */
-    IDENTIFIER = 259,              /* IDENTIFIER  */
-    PROG = 260,                    /* PROG  */
-    DEF = 261,                     /* DEF  */
-    MAIN = 262,                    /* MAIN  */
-    DOM = 263,                     /* DOM  */
-    REC = 264,                     /* REC  */
-    IN = 265,                      /* IN  */
-    OUT = 266,                     /* OUT  */
-    INOUT = 267,                   /* INOUT  */
-    PRINTSTR = 268,                /* PRINTSTR  */
-    PRINT = 269,                   /* PRINT  */
-    READ = 270,                    /* READ  */
-    EQUALS = 271,                  /* EQUALS  */
-    SEMICOLON = 272,               /* SEMICOLON  */
-    COMMA = 273,                   /* COMMA  */
-    LBRACE = 274,                  /* LBRACE  */
-    RBRACE = 275,                  /* RBRACE  */
-    LBRACKET = 276,                /* LBRACKET  */
-    RBRACKET = 277,                /* RBRACKET  */
-    LPAREN = 278,                  /* LPAREN  */
-    RPAREN = 279,                  /* RPAREN  */
-    PLUS = 280,                    /* PLUS  */
-    MINUS = 281,                   /* MINUS  */
-    STAR = 282,                    /* STAR  */
-    SLASH = 283,                   /* SLASH  */
-    QUESTION = 284,                /* QUESTION  */
-    COLON = 285                    /* COLON  */
+    LOC = 258,                     /* LOC  */
+    NUMBER = 259,                  /* NUMBER  */
+    FLOTTANT = 260,                /* FLOTTANT  */
+    ID = 261,                      /* ID  */
+    CHAINE = 262,                  /* CHAINE  */
+    PROG = 263,                    /* PROG  */
+    DEF = 264,                     /* DEF  */
+    MAIN = 265,                    /* MAIN  */
+    DOM = 266,                     /* DOM  */
+    REC = 267,                     /* REC  */
+    IN = 268,                      /* IN  */
+    IN_SIMPLE = 269,               /* IN_SIMPLE  */
+    OUT = 270,                     /* OUT  */
+    INOUT = 271,                   /* INOUT  */
+    PRINTSTR = 272,                /* PRINTSTR  */
+    PRINT = 273,                   /* PRINT  */
+    READ = 274,                    /* READ  */
+    EQUALS = 275,                  /* EQUALS  */
+    SEMICOLON = 276,               /* SEMICOLON  */
+    COMMA = 277,                   /* COMMA  */
+    LBRACE = 278,                  /* LBRACE  */
+    RBRACE = 279,                  /* RBRACE  */
+    LBRACKET = 280,                /* LBRACKET  */
+    RBRACKET = 281,                /* RBRACKET  */
+    LPAREN = 282,                  /* LPAREN  */
+    RPAREN = 283,                  /* RPAREN  */
+    PLUS = 284,                    /* PLUS  */
+    MINUS = 285,                   /* MINUS  */
+    MULT = 286,                    /* MULT  */
+    DIV = 287,                     /* DIV  */
+    QUESTION = 288,                /* QUESTION  */
+    COLON = 289,                   /* COLON  */
+    DOTDOT = 290,                  /* DOTDOT  */
+    PERCENT = 291,                 /* PERCENT  */
+    EQUAL = 292,                   /* EQUAL  */
+    LT = 293,                      /* LT  */
+    GT = 294,                      /* GT  */
+    LE = 295,                      /* LE  */
+    GE = 296,                      /* GE  */
+    EQ = 297                       /* EQ  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -90,12 +102,14 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 10 "corec.y"
+#line 186 "corec.y"
 
-    int num;      // Для чисел
-    char* str;    // Для строк и идентификаторов
+    int num; 
+    float flt;     
+    char* str;
+    int op_type;  // для хранения типа оператора
 
-#line 99 "corec.tab.h"
+#line 113 "corec.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

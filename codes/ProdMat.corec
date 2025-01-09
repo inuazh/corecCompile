@@ -1,0 +1,44 @@
+/* Produit de matrices carrées C=AxB */
+prog ProdMat {
+
+  def Initabc { [in: N; out: (a,N,N), (b,N,N), (c,N,N)]
+    Dom: i in [0..N-1], j in [0..N-1]
+    Rec: {
+      a[i,j]=i*j+1;
+      b[i,j]=i+2*j;
+      c[i,j]=0
+    }
+  }
+
+  def Eq { [in: (a,N,N), (b,N,N), N; inout: (c,N,N)]
+    Dom: i in [0..N-1], j in [0..N-1], k in [0..N-1]
+    Rec: c[i,j]=c[i,j]+a[i,k]*b[k,j]
+  }
+  
+  def Outc { [in: (c,N,N), N; out: (C,N,N)]
+    Dom: i in [0..N-1], j in [0..N-1]
+    Rec: C[i,j]=c[i,j]
+  }
+
+  def Main {
+      Loc: N
+      Rec: {
+        printstr("Entrez une valeur entière : ");
+        read(N);
+        printstr("Le résultat du produit des matrices est : ");
+        print(OutC(Eq(Initabc())))
+      
+        /* Autre écriture
+      
+        Initabc();
+        Eq(%1); => Eq s'applique au résultat de l'appel précédent à Initabc
+        OutC(%1); => OutC s'applique au résultat de l'appel précédent à Eq
+        printstr("Le résultat du produit des matrices est : ");
+        print(%1) => s'applique au résultat de l'appel précédent à OutC
+      
+        */
+      }
+  }
+}
+
+

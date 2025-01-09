@@ -1,0 +1,57 @@
+/* Résolution d'un système triangulaire */
+prog SystTriang {
+
+  def Inita { [in: N; out: (a,N,N)]
+    Dom: i in [0..N-1], j in [0..i-1]
+    Rec: a[i,j]=i*j+1
+  }
+  
+  def Initb { [in: N; out: (b,N)]
+    Dom: i in [0..N-1]
+    Rec: b[i]=i-2
+  }  
+  
+  def Initx { [in: N; out: (x,N)]
+    Dom: i in [0..N-1]
+    Rec: x[i,0]=0
+  }
+
+  def Eq1 { [in: (a,N,N), N; inout: (x,N)]
+    Dom: i in [0..N-1], k in [1..i-1]
+    Rec: x[i,k]=x[i,k-1]+a[i,k]*x[k,k]
+  }
+  
+  def Eq2 { [in: (a,N,N), (b,N), N; inout: (x,N)]
+    Dom: i in [1..N-1]
+    Rec: x[i,i]=(b[i]-x[i,i-1])/a[i,i]
+  }  
+  
+  def OutX { [in: (x,N), N; out: (X,N)]
+    Dom: i in [0..N-1]
+    Rec: X[i]=x[i,i]
+  }    
+
+  def Main {
+      Loc: N
+      Rec: {
+        printstr("Entrez une valeur entière : ");
+        read(N);
+        printstr("Le résultat de la résolution du système est : ");
+        print(OutX(Eq2(Inita(),Initb(),Eq1(Inita(),Initx()))))
+      
+        /* Autre écriture
+      
+        Inita();
+        Initx();
+        Eq1(%1,%2);
+        Initb();
+        Eq2(%4,%1,%2);
+        OutX(%1);
+        printstr("Le résultat de la résolution du système est : ");
+        print(%1)
+      
+      */
+    }
+  }
+}
+
