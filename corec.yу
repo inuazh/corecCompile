@@ -12,7 +12,7 @@ void yyerror(const char* s);
 FILE *output_file; 
 
 // -------------------------------------------------
-// Таблица символов
+// Таблица символов (как было у вас)
 typedef enum { SYM_VAR, SYM_ARR /* , SYM_FUNC, ... */ } SymType;
 
 typedef struct Symbol {
@@ -24,13 +24,16 @@ typedef struct Symbol {
 Symbol* symbolTable = NULL;
 
 Symbol* addSymbol(const char* name, SymType kind) {
+    // Проверка на дубликаты (упрощённая)
     Symbol* p = symbolTable;
     while (p) {
         if (strcmp(p->name, name) == 0) {
+            // Уже есть такой символ, вернём его
             return p;
         }
         p = p->next;
     }
+    // Создаём новый
     Symbol* s = (Symbol*)malloc(sizeof(Symbol));
     s->name = strdup(name);
     s->kind = kind;
@@ -39,6 +42,7 @@ Symbol* addSymbol(const char* name, SymType kind) {
     return s;
 }
 
+// Декларации, чтобы не было конфликтов
 extern int yylineno; 
 int yylex();           
 void yyerror(const char* s);
@@ -48,27 +52,34 @@ FILE *output_file;
 // -------------------------------------------------
 // Для вывода в MIPS
 // -------------------------------------------------
+
+// Функция для генерации .data секции
 void emitDataSection(FILE* out) {
     fprintf(out, ".data\n");
     Symbol* p = symbolTable;
     while (p) {
         if (p->kind == SYM_VAR) {
+            // Для переменной - слово
             fprintf(out, "%s: .word 0\n", p->name);
         }
         else if (p->kind == SYM_ARR) {
+            // Условно место под массив
             fprintf(out, "%s: .space 40\n", p->name);
         }
         p = p->next;
     }
-    // Остальную инфо добавим позже
 }
 
-// Генерация MIPS для =, +=, -=, ...
+// Для простоты, скажем, что любое выражение хранит результат в $t0.
+// (На деле вы бы рекурсивно генерировали код для e, t, f, etc.)
+
+// var = expr
 void genAssign(const char* varName) {
     fprintf(output_file, "# %s = <expr>\n", varName);
     fprintf(output_file, "sw $t0, %s\n", varName);
 }
 
+// var += expr
 void genPlusAssign(const char* varName) {
     fprintf(output_file, "# %s += <expr>\n", varName);
     fprintf(output_file, "lw $t1, %s\n", varName);
@@ -76,6 +87,7 @@ void genPlusAssign(const char* varName) {
     fprintf(output_file, "sw $t1, %s\n", varName);
 }
 
+// var -= expr
 void genMinusAssign(const char* varName) {
     fprintf(output_file, "# %s -= <expr>\n", varName);
     fprintf(output_file, "lw $t1, %s\n", varName);
@@ -83,6 +95,7 @@ void genMinusAssign(const char* varName) {
     fprintf(output_file, "sw $t1, %s\n", varName);
 }
 
+// var *= expr
 void genMultAssign(const char* varName) {
     fprintf(output_file, "# %s *= <expr>\n", varName);
     fprintf(output_file, "lw $t1, %s\n", varName);
@@ -90,32 +103,36 @@ void genMultAssign(const char* varName) {
     fprintf(output_file, "sw $t1, %s\n", varName);
 }
 
+// var /= expr
 void genDivAssign(const char* varName) {
     fprintf(output_file, "# %s /= <expr>\n", varName);
     fprintf(output_file, "lw $t1, %s\n", varName);
-    fprintf(output_file, "div $t1, $t0\n");
+    fprintf(output_file, "div $t1, $t0\n"); // В MARS: div $t1, $t0 => hi/lo
     fprintf(output_file, "mflo $t1\n");
     fprintf(output_file, "sw $t1, %s\n", varName);
 }
 
+// read(var)
 void genRead(const char* varName) {
     fprintf(output_file, "# read %s\n", varName);
-    fprintf(output_file, "li $v0, 5\n");
+    fprintf(output_file, "li $v0, 5   # syscall read_int\n");
     fprintf(output_file, "syscall\n");
     fprintf(output_file, "sw $v0, %s\n", varName);
 }
 
+// print(var)
 void genPrint(const char* varName) {
     fprintf(output_file, "# print %s\n", varName);
     fprintf(output_file, "lw $a0, %s\n", varName);
     fprintf(output_file, "li $v0, 1\n");
     fprintf(output_file, "syscall\n");
-    // перевод строки
+    // печать перевода строки
     fprintf(output_file, "la $a0, newline\n");
     fprintf(output_file, "li $v0, 4\n");
     fprintf(output_file, "syscall\n");
 }
 
+// printstr("...")
 void genPrintStr(const char* str) {
     static int strCount = 0;
     char label[32];
@@ -129,6 +146,9 @@ void genPrintStr(const char* str) {
     fprintf(output_file, "syscall\n");
 }
 
+// -------------------------------------------------------
+// Простейший enum, чтобы хранить, какой оператор (op)
+// -------------------------------------------------------
 enum {
     OP_NONE=0,
     OP_PLUS,
@@ -137,7 +157,9 @@ enum {
     OP_DIV
 };
 
-// Вспомогательные функции для склейки строк
+// ---------------------
+// Функции для склеивания строк 
+// ---------------------
 static char* concat2(const char* s1, const char* s2) {
     if (!s1) s1 = "";
     if (!s2) s2 = "";
@@ -167,7 +189,7 @@ static char* concat3(const char* s1, const char* s2, const char* s3) {
     int num; 
     float flt;     
     char* str;
-    int op_type;  
+    int op_type;  // для хранения типа оператора
 }
 
 %token LOC
@@ -189,56 +211,56 @@ static char* concat3(const char* s1, const char* s2, const char* s3) {
 
 %type <str> arrayref
 %type <op_type> op
+
+/* Новый момент — добавляем, чтобы Bison знал, 
+   что e, t, f возвращают строки (MIPS-код). */
 %type <str> e t f
 
+%debug
 
 %%
 
 program:
     PROG ID LBRACE lfonc DEF MAIN LBRACE loc_section dom_section rec_section RBRACE RBRACE
     {
+        // В конце парсинга: выводим таблицу символов (переменные) в .data
         emitDataSection(output_file);
 
+        // Добавим "служебные" данные (например, для переноса строки)
         fprintf(output_file, "newline: .asciiz \"\\n\"\n");
+
+        // Начинаем секцию кода
         fprintf(output_file, ".text\n.globl main\n");
         fprintf(output_file, "main:\n");
-
-        // Завершаем программу
+        // ... Можно добавить что-то ещё ...
+        // Завершаем программу:
         fprintf(output_file, "\n# End of main\n");
-        fprintf(output_file, "li $v0, 10\n");
+        fprintf(output_file, "li $v0, 10   # syscall exit\n");
         fprintf(output_file, "syscall\n");
     }
 ;
 
-/* 
-   Набор функций (fonc). 
-   Для каждой 'def ID { ... }' в конце 
-   напечатаем метку ID: и jr $ra 
-*/
 lfonc:
     lfonc fonc
-  | /* epsilon */
+    | /* epsilon */
 ;
 
 fonc:
     DEF ID LBRACE args loc_section dom_section rec_section RBRACE
     {
-      // В конце описания функции выведем метку <ID> и "jr $ra"
-      fprintf(output_file, "\n# function %s\n", $2);
-      fprintf(output_file, "%s:\n", $2);
-      fprintf(output_file, "jr $ra\n");
+        // addSymbol($2, SYM_FUNC) — можно при желании
     }
 ;
 
 loc_section:
     LOC ldecl
-  | LOC 
-  | /* empty */
+    | LOC 
+    | /* epsilon */
 ;
 
 ldecl:
     ldecl COMMA decl
-  | decl
+    | decl
 ;
 
 decl:
@@ -249,12 +271,16 @@ decl:
   | ID EQUALS e
     {
       addSymbol($1, SYM_VAR);
+      // Выводим код, который вычисляет e (в $t0)
       fprintf(output_file, "%s", $3);
+      // Теперь делаем genAssign
       genAssign($1);
-      free($3);
+
+      free($3); // освобождаем строку (если надо)
     }
   | array
     {
+      // Добавляем массив, если хотите
       // addSymbol(..., SYM_ARR);
     }
 ;
@@ -265,14 +291,17 @@ array:
 
 dlist:
     dlist COMMA e
-  | e
+    | e
 ;
 
-/* Аргументы [in: N; out: X], разрешаем любую комбинацию in/out/inout */
+/****************************************************************************
+ *  Раздел для разбора [in: N; out: (f,N)] и т. п.
+ ****************************************************************************/
+
 args:
     LBRACKET RBRACKET
   | LBRACKET io_sections RBRACKET
-;
+  ;
 
 io_sections:
     sectionlist
@@ -288,6 +317,14 @@ section:
   | out_section
   | inout_section
 ;
+
+
+maybe_out:
+    SEMICOLON out_section
+  | SEMICOLON inout_section
+  | /* empty */
+  ;
+
 
 in_section:
     IN param_list
@@ -318,13 +355,13 @@ id_list:
 
 dom_section:
     DOM domlist 
-  | DOM 
-  | /* epsilon */
+    | DOM 
+    | /* epsilon */
 ;
 
 domlist:
     domlist COMMA d
-  | d
+    | d
 ;
 
 d:
@@ -337,7 +374,7 @@ rec_section:
 
 blockinst:
     LBRACE listei RBRACE
-  | i
+    | i
 ;
 
 listei:
@@ -345,35 +382,50 @@ listei:
     | i
 ;
 
-/* Инструкции */
+/* Основное место, где обрабатываем инструкции */
 i:
+    /* arrayref op EQUALS e */
     arrayref op EQUALS e
       {
-        /* Печатаем код expr, затем arrayref assign (индекс = 0, заглушка) */
-        fprintf(output_file, "%s", $4);
+        // (Можно дописать код вычисления e -> $t0)
+        // Но для простоты "не делаем codeGen(e)" - вставьте, если нужно
+        // Сейчас мы выводим заглушку — 
+        fprintf(output_file, "%s", $4); // вывести код expr
+        // Затем псевдокод для присвоения в массив
         fprintf(output_file, "# arrayref assign\n");
-        fprintf(output_file, "la $t2, %s\n", $1);
+        fprintf(output_file, "la $t2, %s  # base address of array %s\n", $1, $1);
         fprintf(output_file, "li $t1, 0\n");
         fprintf(output_file, "add $t2, $t2, $t1\n");
         fprintf(output_file, "sw $t0, 0($t2)\n");
+
         free($1);
         free($4);
       }
+    /* ID op EQUALS e */
     | ID op EQUALS e
       {
         addSymbol($1, SYM_VAR);
+
+        // Сначала выводим код e (чтобы вычислить в $t0)
         fprintf(output_file, "%s", $4);
+
+        // Затем обрабатываем оператор =, +=, ...
         if ($2 == OP_NONE) {
           genAssign($1);
-        } else if ($2 == OP_PLUS) {
+        }
+        else if ($2 == OP_PLUS) {
           genPlusAssign($1);
-        } else if ($2 == OP_MINUS) {
+        }
+        else if ($2 == OP_MINUS) {
           genMinusAssign($1);
-        } else if ($2 == OP_MULT) {
+        }
+        else if ($2 == OP_MULT) {
           genMultAssign($1);
-        } else if ($2 == OP_DIV) {
+        }
+        else if ($2 == OP_DIV) {
           genDivAssign($1);
         }
+
         free($4);
       }
     | READ LPAREN ID RPAREN
@@ -395,7 +447,7 @@ i:
     | PRINT LPAREN call RPAREN
 ;
 
-/* Операторы +=, -=, ... */
+/* Упрощенный способ различать +=, -=, *=, /= vs. = */
 op:
     PLUS { $$ = OP_PLUS; }
   | MINUS { $$ = OP_MINUS; }
@@ -404,7 +456,7 @@ op:
   | /* epsilon */ { $$ = OP_NONE; }
 ;
 
-/* Вызовы функций (упрощённо) */
+/* Вызовы функций — пока не реализованы полноценно */
 call:
     | ID LPAREN lcall RPAREN
     | ID LPAREN RPAREN
@@ -412,32 +464,43 @@ call:
 
 lcall:
     lcall COMMA call
-  | lcall COMMA precinst
-  | call
-  | precinst
+    | lcall COMMA precinst
+    | call
+    | precinst
 ;
 
 precinst:
     PERCENT NUMBER
 ;
 
-/* arrayref */
+/* arrayref: ID [ elist ] */
 arrayref:
   ID LBRACKET elist RBRACKET
   {
+    // Просто хранить имя массива в $$ = $1
     $$ = $1;
   }
 ;
 
 elist:
     elist COMMA e
-  | e
+    | e
 ;
 
-/* Правила для e/t/f с «генерацией на лету» */
+/* 
+   -- САМЫЙ ВАЖНЫЙ БЛОК: e, t, f --
+   Здесь мы генерируем код "на лету", 
+   чтобы в конце каждого подвыражения 
+   результат лежал в $t0.
+*/
+
 e:
     e PLUS t
     {
+      // 1) Код левого e -> $t0
+      // 2) move $t1, $t0
+      // 3) Код правого t -> $t0
+      // 4) add $t0, $t1, $t0
       char* part1 = concat2($1, "  # e PLUS t\n  move $t1, $t0\n");
       char* part2 = concat2(part1, $3);
       free(part1);
@@ -456,12 +519,13 @@ e:
     }
   | MINUS e
     {
+      // унарный минус
       char* fin = concat2($2, "  # unary minus\n  neg $t0, $t0\n");
       $$ = fin;
     }
   | t
     {
-      $$ = $1;
+      $$ = $1; // просто проброс
     }
 ;
 
@@ -486,7 +550,7 @@ t:
     }
   | t PERCENT f
     {
-      char* p1 = concat2($1, "  # t %% f\n  move $t1, $t0\n");
+      char* p1 = concat2($1, "  # t % f\n  move $t1, $t0\n");
       char* p2 = concat2(p1, $3);
       free(p1);
       char* fin = concat2(p2, "  div $t1, $t0\n  mfhi $t0\n");
@@ -512,6 +576,7 @@ f:
     }
   | ID
     {
+      // загрузить переменную (из памяти)
       char buf[64];
       sprintf(buf, "  lw $t0, %s\n", $1);
       $$ = strdup(buf);
@@ -522,6 +587,11 @@ f:
     }
   | arrayref
     {
+      // если хотим при f: arrayref грузить значение массива, нужно:
+      // 1. вычислить индекс
+      // 2. la $t2, ...
+      // 3. lw $t0, 0($t2)
+      // Пока заглушка:
       $$ = strdup("# f: arrayref - not implemented\n");
     }
   | FLOTTANT
@@ -530,6 +600,7 @@ f:
     }
 ;
 
+/* cond: e oprel e ? b : b - пока без генерации */
 cond:
     e oprel e QUESTION b COLON b
 ;
@@ -551,3 +622,4 @@ oprel:
 void yyerror(const char* s) {
     fprintf(stderr, "Error: %s at line %d\n", s, yylineno);
 }
+

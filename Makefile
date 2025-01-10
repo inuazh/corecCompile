@@ -2,7 +2,7 @@ CC = gcc
 LEX = flex
 YACC = bison
 CFLAGS = -Wall -g -Wno-unused-function
-TARGET = corec
+TARGET = parser
 
 
 OBJS = lex.yy.o corec.tab.o main.o

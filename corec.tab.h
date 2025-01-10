@@ -39,7 +39,7 @@
 # define YY_YY_COREC_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
-# define YYDEBUG 1
+# define YYDEBUG 0
 #endif
 #if YYDEBUG
 extern int yydebug;
@@ -102,12 +102,12 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 186 "corec.y"
+#line 166 "corec.y"
 
     int num; 
     float flt;     
     char* str;
-    int op_type;  // для хранения типа оператора
+    int op_type;  
 
 #line 113 "corec.tab.h"
 

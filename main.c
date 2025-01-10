@@ -2,6 +2,9 @@
 #include "corec.tab.h"
 #include <stdlib.h> 
 
+int yydebug = 0;
+
+
 
 extern int yyparse();
 
